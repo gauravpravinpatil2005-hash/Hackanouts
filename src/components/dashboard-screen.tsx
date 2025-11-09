@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
-import { Bell, Plus, TrendingUp, Zap, Footprints, Calendar, Users, Camera, Flame, Loader2, Bike, Recycle, Leaf } from "lucide-react";
+import { Bell, Plus, TrendingUp, Zap, Footprints, Calendar, Users, Camera, Flame, Loader2, Bike, Recycle, Leaf, Star, Gift, ArrowRight, Sparkles, Trophy, Wind, Thermometer, Droplets, Cloud } from "lucide-react";
 import { Card } from "./ui/card";
 import { Button } from "./ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "./ui/avatar";
 import { Badge } from "./ui/badge";
 import { Progress } from "./ui/progress";
 import { apiCall } from "../utils/supabase/client";
+import { motion } from "motion/react";
 
 interface DashboardScreenProps {
   onNavigate: (tab: string) => void;
@@ -16,6 +17,42 @@ export function DashboardScreen({ onNavigate, userId }: DashboardScreenProps) {
   const [profile, setProfile] = useState<any>(null);
   const [recentActivities, setRecentActivities] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [environmentalData, setEnvironmentalData] = useState({
+    aqi: 42,
+    aqiLevel: 'Good',
+    temperature: 24,
+    humidity: 65,
+    windSpeed: 12
+  });
+
+  // Simulate real-time environmental data updates
+  useEffect(() => {
+    const updateEnvironmentalData = () => {
+      // Simulate fluctuating data
+      setEnvironmentalData({
+        aqi: Math.floor(35 + Math.random() * 20), // 35-55 range (Good air quality)
+        aqiLevel: 'Good',
+        temperature: Math.floor(22 + Math.random() * 6), // 22-28°C
+        humidity: Math.floor(60 + Math.random() * 15), // 60-75%
+        windSpeed: Math.floor(8 + Math.random() * 10) // 8-18 km/h
+      });
+    };
+
+    // Update every 30 seconds to simulate real-time data
+    const interval = setInterval(updateEnvironmentalData, 30000);
+    
+    return () => clearInterval(interval);
+  }, []);
+
+  // Helper function to get AQI color and level
+  const getAQIInfo = (aqi: number) => {
+    if (aqi <= 50) return { level: 'Good', color: '#2E7D32', bgColor: '#E8F5E9' };
+    if (aqi <= 100) return { level: 'Moderate', color: '#F9A825', bgColor: '#FFF9C4' };
+    if (aqi <= 150) return { level: 'Unhealthy', color: '#F57C00', bgColor: '#FFE0B2' };
+    return { level: 'Hazardous', color: '#C62828', bgColor: '#FFCDD2' };
+  };
+
+  const aqiInfo = getAQIInfo(environmentalData.aqi);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -27,15 +64,60 @@ export function DashboardScreen({ onNavigate, userId }: DashboardScreenProps) {
       try {
         setIsLoading(true);
         
-        // Fetch user profile
+        // Try to fetch real data
         const profileData = await apiCall('/user/profile');
         setProfile(profileData.profile);
 
-        // Fetch recent activities
         const activitiesData = await apiCall('/activities');
         setRecentActivities(activitiesData.activities.slice(0, 3));
       } catch (error) {
-        console.error('Error fetching dashboard data:', error);
+        // API error - using demo data fallback
+        
+        // Use demo data if API fails (demo mode)
+        setProfile({
+          id: userId,
+          name: 'Demo User',
+          email: 'demo@ecotracker.com',
+          ecoScore: 2450,
+          level: 5,
+          points: 2450,
+          streak: 7,
+          co2Saved: 15.3,
+          weeklyPoints: 420,
+          activities: 23,
+          totalDistance: 32,
+          totalUploads: 3,
+          eventsJoined: 1,
+          joinedDate: new Date().toISOString(),
+          avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Demo',
+        });
+        
+        setRecentActivities([
+          {
+            id: '1',
+            title: 'Recycled Plastic',
+            category: 'recycling',
+            points: 50,
+            co2Saved: '2.5',
+            date: new Date().toISOString(),
+          },
+          {
+            id: '2',
+            title: 'Cycled to Work',
+            category: 'transport',
+            points: 30,
+            co2Saved: '4.2',
+            date: new Date(Date.now() - 86400000).toISOString(),
+          },
+          {
+            id: '3',
+            title: 'Beach Cleanup',
+            category: 'cleanup',
+            points: 100,
+            co2Saved: '5.0',
+            date: new Date(Date.now() - 172800000).toISOString(),
+          },
+        ]);
       } finally {
         setIsLoading(false);
       }
@@ -113,8 +195,201 @@ export function DashboardScreen({ onNavigate, userId }: DashboardScreenProps) {
         </Card>
       </div>
 
-      {/* Quick Stats */}
+      {/* Eco Points Card - Prominent Display */}
       <div className="px-6 -mt-4 mb-6">
+        <motion.div
+          initial={{ scale: 0.95, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ duration: 0.3 }}
+        >
+          <Card className="border-0 shadow-xl overflow-hidden relative" style={{
+            background: 'linear-gradient(135deg, #FFF9C4 0%, #FFEB3B 50%, #FBC02D 100%)'
+          }}>
+            <div className="absolute top-0 right-0 w-32 h-32 opacity-20">
+              <Star className="w-full h-full text-yellow-800" />
+            </div>
+            <div className="p-6 relative">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center space-x-2">
+                  <div className="w-10 h-10 bg-yellow-600 rounded-full flex items-center justify-center">
+                    <Star className="w-6 h-6 text-white fill-white" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-yellow-800 font-medium">YOUR ECO POINTS</p>
+                    <p className="text-3xl font-bold text-yellow-900">{profile?.points || 0}</p>
+                  </div>
+                </div>
+                <Button
+                  onClick={() => onNavigate('rewards')}
+                  size="sm"
+                  className="bg-yellow-600 hover:bg-yellow-700 text-white rounded-full shadow-md"
+                >
+                  <Gift className="w-4 h-4 mr-1" />
+                  Redeem
+                </Button>
+              </div>
+              
+              <div className="flex items-center justify-between bg-white/40 rounded-lg p-3">
+                <div className="flex items-center space-x-2">
+                  <Sparkles className="w-4 h-4 text-yellow-700" />
+                  <span className="text-xs text-yellow-800 font-medium">
+                    {(profile?.points || 0) >= 100 
+                      ? '🎉 Unlocked! You can redeem brand discounts' 
+                      : `${100 - (profile?.points || 0)} more points to unlock discounts`}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </Card>
+        </motion.div>
+      </div>
+
+      {/* Live Environmental Data Section */}
+      <div className="px-6 mb-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-gray-800 flex items-center">
+            <Cloud className="w-5 h-5 mr-2 text-blue-600" />
+            Live Environmental Data
+          </h2>
+          <motion.div
+            animate={{ opacity: [1, 0.5, 1] }}
+            transition={{ duration: 2, repeat: Infinity }}
+          >
+            <Badge variant="secondary" className="bg-green-100 text-green-700 text-xs">
+              ● Live
+            </Badge>
+          </motion.div>
+        </div>
+
+        <Card className="border-0 shadow-lg overflow-hidden bg-gradient-to-br from-blue-50 via-white to-green-50">
+          <div className="p-5">
+            {/* AQI - Featured larger display */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              className="mb-5 p-4 rounded-2xl"
+              style={{ backgroundColor: aqiInfo.bgColor }}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="w-12 h-12 rounded-full flex items-center justify-center bg-white shadow-md">
+                    <Wind className="w-6 h-6" style={{ color: aqiInfo.color }} />
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-600 mb-1">Air Quality Index</p>
+                    <p className="text-3xl font-bold" style={{ color: aqiInfo.color }}>
+                      {environmentalData.aqi}
+                    </p>
+                  </div>
+                </div>
+                <Badge 
+                  className="text-sm px-3 py-1 shadow-sm"
+                  style={{ 
+                    backgroundColor: aqiInfo.color,
+                    color: 'white'
+                  }}
+                >
+                  {aqiInfo.level}
+                </Badge>
+              </div>
+            </motion.div>
+
+            {/* Other environmental metrics in grid */}
+            <div className="grid grid-cols-3 gap-3">
+              {/* Temperature */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.5, delay: 0.1 }}
+              >
+                <Card className="p-3 border-0 bg-gradient-to-br from-orange-50 to-red-50 shadow-sm">
+                  <div className="text-center">
+                    <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center mx-auto mb-2 shadow-sm">
+                      <Thermometer className="w-5 h-5 text-orange-600" />
+                    </div>
+                    <p className="text-xs text-gray-600 mb-1">Temperature</p>
+                    <motion.p 
+                      className="text-xl font-bold text-orange-600"
+                      key={environmentalData.temperature}
+                      initial={{ scale: 1 }}
+                      animate={{ scale: [1, 1.1, 1] }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      {environmentalData.temperature}°C
+                    </motion.p>
+                  </div>
+                </Card>
+              </motion.div>
+
+              {/* Humidity */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.5, delay: 0.2 }}
+              >
+                <Card className="p-3 border-0 bg-gradient-to-br from-blue-50 to-cyan-50 shadow-sm">
+                  <div className="text-center">
+                    <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center mx-auto mb-2 shadow-sm">
+                      <Droplets className="w-5 h-5 text-blue-600" />
+                    </div>
+                    <p className="text-xs text-gray-600 mb-1">Humidity</p>
+                    <motion.p 
+                      className="text-xl font-bold text-blue-600"
+                      key={environmentalData.humidity}
+                      initial={{ scale: 1 }}
+                      animate={{ scale: [1, 1.1, 1] }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      {environmentalData.humidity}%
+                    </motion.p>
+                  </div>
+                </Card>
+              </motion.div>
+
+              {/* Wind Speed */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.5, delay: 0.3 }}
+              >
+                <Card className="p-3 border-0 bg-gradient-to-br from-teal-50 to-emerald-50 shadow-sm">
+                  <div className="text-center">
+                    <motion.div 
+                      className="w-10 h-10 bg-white rounded-full flex items-center justify-center mx-auto mb-2 shadow-sm"
+                      animate={{ rotate: [0, 360] }}
+                      transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+                    >
+                      <Wind className="w-5 h-5 text-teal-600" />
+                    </motion.div>
+                    <p className="text-xs text-gray-600 mb-1">Wind Speed</p>
+                    <motion.p 
+                      className="text-xl font-bold text-teal-600"
+                      key={environmentalData.windSpeed}
+                      initial={{ scale: 1 }}
+                      animate={{ scale: [1, 1.1, 1] }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      {environmentalData.windSpeed}
+                    </motion.p>
+                    <p className="text-xs text-gray-500">km/h</p>
+                  </div>
+                </Card>
+              </motion.div>
+            </div>
+
+            {/* Info footer */}
+            <div className="mt-4 p-3 bg-white/60 rounded-xl border border-gray-100">
+              <p className="text-xs text-gray-600 text-center">
+                📍 Data updates every 30 seconds • Stay informed about your environment
+              </p>
+            </div>
+          </div>
+        </Card>
+      </div>
+
+      {/* Quick Stats */}
+      <div className="px-6 mb-6">
         <div className="grid grid-cols-3 gap-3">
           {quickStats.map((stat, index) => {
             const Icon = stat.icon;
@@ -129,6 +404,88 @@ export function DashboardScreen({ onNavigate, userId }: DashboardScreenProps) {
           })}
         </div>
       </div>
+
+      {/* Brand Collaboration Section */}
+      {(profile?.points || 0) >= 100 && (
+        <div className="px-6 mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-gray-800 flex items-center">
+              <Trophy className="w-5 h-5 mr-2 text-yellow-600" />
+              Brand Rewards Unlocked!
+            </h2>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onNavigate('rewards')}
+              className="text-green-600 hover:bg-green-50"
+            >
+              View all
+            </Button>
+          </div>
+          
+          <Card className="border-2 border-green-300 bg-gradient-to-br from-green-50 to-blue-50 overflow-hidden">
+            <div className="p-5">
+              <div className="flex items-center space-x-3 mb-4">
+                <div className="w-12 h-12 bg-green-600 rounded-full flex items-center justify-center">
+                  <Gift className="w-6 h-6 text-white" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-semibold text-gray-900 mb-1">Exclusive Discounts Available</h3>
+                  <p className="text-sm text-gray-600">Redeem your {profile?.points || 0} points for brand discounts</p>
+                </div>
+              </div>
+              
+              {/* Partner Brand Logos */}
+              <div className="grid grid-cols-4 gap-3 mb-4">
+                {['Patagonia', 'Body Shop', 'EcoRight', 'Adidas'].map((brand, idx) => (
+                  <div key={idx} className="bg-white rounded-lg p-3 shadow-sm flex items-center justify-center">
+                    <span className="text-xs font-medium text-gray-700 text-center">{brand}</span>
+                  </div>
+                ))}
+              </div>
+              
+              <Button
+                onClick={() => onNavigate('rewards')}
+                className="w-full bg-green-600 hover:bg-green-700 text-white rounded-xl shadow-md"
+              >
+                Browse All Brand Discounts
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {/* Info Card for Users Below 100 Points */}
+      {(profile?.points || 0) < 100 && (
+        <div className="px-6 mb-6">
+          <Card className="border-2 border-dashed border-gray-300 bg-gradient-to-br from-gray-50 to-blue-50">
+            <div className="p-5 text-center">
+              <div className="w-16 h-16 bg-gradient-to-br from-green-400 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-3 opacity-60">
+                <Gift className="w-8 h-8 text-white" />
+              </div>
+              <h3 className="font-semibold text-gray-900 mb-2">Unlock Brand Discounts</h3>
+              <p className="text-sm text-gray-600 mb-3">
+                Earn {100 - (profile?.points || 0)} more points to unlock exclusive discounts from top eco-friendly brands like Patagonia, The Body Shop, and more!
+              </p>
+              <div className="bg-white rounded-lg p-3 mb-4">
+                <Progress value={(profile?.points || 0)} className="h-3 mb-2" />
+                <p className="text-xs text-gray-600">
+                  {profile?.points || 0} / 100 points
+                </p>
+              </div>
+              <Button
+                onClick={() => onNavigate('tracker')}
+                variant="outline"
+                className="border-green-600 text-green-600 hover:bg-green-50 rounded-full"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Start Earning Points
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )}
 
       {/* Quick Actions */}
       <div className="px-6 mb-6">

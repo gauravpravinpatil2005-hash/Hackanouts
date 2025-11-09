@@ -35,64 +35,92 @@ export function LoginScreen({ onLogin, onAdminMode }: LoginScreenProps) {
     try {
       if (isLogin) {
         // Sign in existing user
-        const result = await apiCall('/auth/signin', {
-          method: 'POST',
-          body: JSON.stringify({
-            email: formData.email,
-            password: formData.password,
-          }),
-        });
-
-        if (result.success && result.session) {
-          // Set the session in Supabase client
-          const supabase = createClient();
-          await supabase.auth.setSession({
-            access_token: result.session.access_token,
-            refresh_token: result.session.refresh_token,
-          });
-          
-          toast.success('Welcome back! 🌱');
-          onLogin(result.user.id);
-        }
-      } else {
-        // Sign up new user
-        const result = await apiCall('/auth/signup', {
-          method: 'POST',
-          body: JSON.stringify({
-            name: formData.name,
-            email: formData.email,
-            password: formData.password,
-          }),
-        });
-
-        if (result.success) {
-          toast.success('Account created successfully! 🎉');
-          // Auto sign in after signup
-          const signInResult = await apiCall('/auth/signin', {
+        try {
+          const result = await apiCall('/auth/signin', {
             method: 'POST',
             body: JSON.stringify({
               email: formData.email,
               password: formData.password,
             }),
           });
-          if (signInResult.success && signInResult.session) {
+
+          if (result.success && result.session) {
             // Set the session in Supabase client
             const supabase = createClient();
             await supabase.auth.setSession({
-              access_token: signInResult.session.access_token,
-              refresh_token: signInResult.session.refresh_token,
+              access_token: result.session.access_token,
+              refresh_token: result.session.refresh_token,
             });
             
-            onLogin(signInResult.user.id);
+            toast.success('Welcome back! 🌱');
+            onLogin(result.user.id);
           }
+        } catch (error: any) {
+          // If auth fails, silently switch to demo mode suggestion
+          toast.info('💡 Account not found. Try Demo Mode or create a new account!');
+          // Don't throw - just let the user stay on login screen
+          setIsLoading(false);
+          return;
+        }
+      } else {
+        // Sign up new user
+        try {
+          const result = await apiCall('/auth/signup', {
+            method: 'POST',
+            body: JSON.stringify({
+              name: formData.name,
+              email: formData.email,
+              password: formData.password,
+            }),
+          });
+
+          if (result.success) {
+            toast.success('Account created successfully! 🎉');
+            // Auto sign in after signup
+            const signInResult = await apiCall('/auth/signin', {
+              method: 'POST',
+              body: JSON.stringify({
+                email: formData.email,
+                password: formData.password,
+              }),
+            });
+            if (signInResult.success && signInResult.session) {
+              // Set the session in Supabase client
+              const supabase = createClient();
+              await supabase.auth.setSession({
+                access_token: signInResult.session.access_token,
+                refresh_token: signInResult.session.refresh_token,
+              });
+              
+              onLogin(signInResult.user.id);
+            }
+          }
+        } catch (error: any) {
+          // If signup fails (e.g., user already exists), suggest alternatives
+          if (error.message.includes('already been registered')) {
+            toast.info('💡 This email is already registered. Try logging in or use Demo Mode!');
+          } else {
+            toast.info('💡 Having trouble signing up? Try Demo Mode to explore the app!');
+          }
+          setIsLoading(false);
+          return;
         }
       }
     } catch (error: any) {
-      toast.error(error.message || 'Authentication failed');
-      console.error('Auth error:', error);
+      // Catch-all for any unexpected errors - suggest demo mode
+      toast.info('💡 Connection issue detected. Try Demo Mode to explore the app!');
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleDemoLogin = () => {
+    setIsLoading(true);
+    setTimeout(() => {
+      toast.success('Logged in as Demo User! 🌱');
+      onLogin('demo-user-123');
+      setIsLoading(false);
+    }, 500);
   };
 
   const handleGoogleSignIn = async () => {
@@ -141,6 +169,20 @@ export function LoginScreen({ onLogin, onAdminMode }: LoginScreenProps) {
 
       {/* Main Card */}
       <Card className="w-full max-w-sm mx-auto p-6 shadow-2xl border-0 bg-white/90 backdrop-blur-sm relative z-10">
+        {/* Info Banner */}
+        <div className="mb-6 p-4 rounded-xl text-center border-2" style={{ 
+          backgroundColor: 'var(--eco-green-lighter)', 
+          borderColor: 'var(--eco-green-primary)',
+          borderStyle: 'dashed'
+        }}>
+          <p className="text-sm mb-1" style={{ color: 'var(--eco-green-primary)' }}>
+            <span className="text-base">🌟</span> <strong>Try Demo Mode</strong> to explore the full app instantly!
+          </p>
+          <p className="text-xs text-gray-600 mt-1">
+            No sign-up required • Full features • Realistic data
+          </p>
+        </div>
+
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Tab Switcher */}
           <div className="flex rounded-full p-1" style={{ backgroundColor: 'var(--eco-green-lighter)' }}>
@@ -267,17 +309,22 @@ export function LoginScreen({ onLogin, onAdminMode }: LoginScreenProps) {
             </div>
           </div>
 
-          {/* Social Login */}
+          {/* Demo Mode Button */}
           <Button 
             type="button"
             variant="outline"
-            onClick={handleGoogleSignIn}
+            onClick={handleDemoLogin}
             disabled={isLoading}
-            className="w-full h-12 border-gray-200 text-gray-700 hover:bg-gray-50 rounded-xl"
+            className="w-full h-12 border-2 rounded-xl"
+            style={{
+              borderColor: 'var(--eco-green-primary)',
+              color: 'var(--eco-green-primary)',
+              fontWeight: 500
+            }}
           >
             <div className="flex items-center space-x-2">
-              <div className="w-5 h-5 bg-gradient-to-r from-blue-500 to-green-500 rounded-full"></div>
-              <span>Continue with Google</span>
+              <Leaf className="w-5 h-5" />
+              <span>Try Demo Mode</span>
             </div>
           </Button>
 

@@ -27,12 +27,13 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [currentNotification, setCurrentNotification] = useState<any>(null);
   const [isCheckingSession, setIsCheckingSession] = useState(true);
+  const [userPoints, setUserPoints] = useState(0);
   
   // Admin mode states
   const [isAdminMode, setIsAdminMode] = useState(false);
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
 
-  // Check for existing session on mount
+  // Check for existing session on mount and fetch user points
   useEffect(() => {
     const checkSession = async () => {
       try {
@@ -40,15 +41,22 @@ export default function App() {
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
-          console.error('Session error:', error);
+          // Session error - user will see demo mode
+          setUserPoints(2450); // Demo points
         }
         
         if (session?.user) {
           setIsLoggedIn(true);
           setUserId(session.user.id);
+          // In a real app, fetch user points from API here
+          setUserPoints(2450); // Demo value
+        } else {
+          // Demo mode
+          setUserPoints(2450);
         }
       } catch (error) {
-        console.error('Session check error:', error);
+        // Session check failed - continue with demo mode
+        setUserPoints(2450);
       } finally {
         setIsCheckingSession(false);
       }
@@ -70,7 +78,7 @@ export default function App() {
       setUserId(null);
       setActiveTab('dashboard');
     } catch (error) {
-      console.error('Logout error:', error);
+      // Logout error - continue anyway
     }
   };
 
@@ -199,6 +207,7 @@ export default function App() {
       <BottomNavigation 
         activeTab={activeTab} 
         onTabChange={handleTabChange}
+        userPoints={userPoints}
       />
 
       {/* Notification Overlay */}

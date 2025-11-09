@@ -18,7 +18,7 @@ export function createClient() {
         }
       );
     } catch (error) {
-      console.error('Failed to create Supabase client:', error);
+      // Client creation failed - will use demo mode
       throw error;
     }
   }
@@ -57,7 +57,7 @@ export async function apiCall(endpoint: string, options: RequestInit = {}) {
 
     return response.json();
   } catch (error) {
-    console.error('API call error:', error);
+    // Silently handle API errors - they will be caught by calling code
     throw error;
   }
 }

@@ -1,16 +1,17 @@
-import { Home, MapPin, Camera, Trophy, User } from "lucide-react";
+import { Home, MapPin, Camera, Trophy, User, Gift, Sparkles } from "lucide-react";
 
 interface BottomNavigationProps {
   activeTab: string;
   onTabChange: (tab: string) => void;
+  userPoints?: number;
 }
 
-export function BottomNavigation({ activeTab, onTabChange }: BottomNavigationProps) {
+export function BottomNavigation({ activeTab, onTabChange, userPoints = 0 }: BottomNavigationProps) {
   const tabs = [
-    { id: 'dashboard', icon: Home, label: 'Dashboard' },
+    { id: 'dashboard', icon: Home, label: 'Home' },
     { id: 'tracker', icon: MapPin, label: 'Track' },
-    { id: 'upload', icon: Camera, label: 'Upload' },
-    { id: 'leaderboard', icon: Trophy, label: 'Leaderboard' },
+    { id: 'rewards', icon: Gift, label: 'Rewards' },
+    { id: 'leaderboard', icon: Trophy, label: 'Ranks' },
     { id: 'profile', icon: User, label: 'Profile' },
   ];
 
@@ -25,7 +26,7 @@ export function BottomNavigation({ activeTab, onTabChange }: BottomNavigationPro
             <button
               key={tab.id}
               onClick={() => onTabChange(tab.id)}
-              className={`flex flex-col items-center py-2 px-3 rounded-xl transition-all min-w-0 ${
+              className={`relative flex flex-col items-center py-2 px-3 rounded-xl transition-all min-w-0 ${
                 isActive 
                   ? 'text-white shadow-lg' 
                   : 'text-gray-500 hover:text-gray-700'
@@ -34,6 +35,13 @@ export function BottomNavigation({ activeTab, onTabChange }: BottomNavigationPro
                 backgroundColor: isActive ? 'var(--eco-green-primary)' : 'transparent'
               }}
             >
+              {/* Notification Badge for Rewards */}
+              {tab.id === 'rewards' && userPoints >= 100 && !isActive && (
+                <div className="absolute -top-1 -right-1 w-4 h-4 bg-yellow-400 rounded-full flex items-center justify-center shadow-md animate-pulse">
+                  <Sparkles className="w-2.5 h-2.5 text-yellow-900" />
+                </div>
+              )}
+              
               <Icon className={`w-5 h-5 ${isActive ? 'stroke-2' : 'stroke-1.5'}`} />
               <span className={`text-xs mt-1 ${isActive ? 'font-medium' : 'font-normal'}`}>
                 {tab.label}
