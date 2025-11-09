@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Bell, Plus, TrendingUp, Zap, Footprints, Calendar, Users, Camera, Flame, Loader2 } from "lucide-react";
+import { Bell, Plus, TrendingUp, Zap, Footprints, Calendar, Users, Camera, Flame, Loader2, Bike, Recycle, Leaf } from "lucide-react";
 import { Card } from "./ui/card";
 import { Button } from "./ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "./ui/avatar";
@@ -212,7 +212,17 @@ export function DashboardScreen({ onNavigate, userId }: DashboardScreenProps) {
         {recentActivities.length > 0 ? (
           <div className="space-y-3">
             {recentActivities.map((activity) => {
-              const Icon = activity.icon;
+              // Map activity types to icons
+              const getIcon = () => {
+                const type = (activity.type || '').toLowerCase();
+                if (type.includes('bike') || type.includes('cycling')) return Bike;
+                if (type.includes('recycle') || type.includes('recycling')) return Recycle;
+                if (type.includes('upload')) return Camera;
+                if (type.includes('walk') || type.includes('walking')) return Footprints;
+                return Leaf; // default icon
+              };
+              const Icon = getIcon();
+              
               return (
                 <Card key={activity.id} className="p-4 border-0 shadow-sm">
                   <div className="flex items-center justify-between">

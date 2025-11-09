@@ -8,9 +8,10 @@ import { toast } from "sonner@2.0.3";
 
 interface LoginScreenProps {
   onLogin: (userId: string) => void;
+  onAdminMode: () => void;
 }
 
-export function LoginScreen({ onLogin }: LoginScreenProps) {
+export function LoginScreen({ onLogin, onAdminMode }: LoginScreenProps) {
   const [isLogin, setIsLogin] = useState(false); // Default to Register tab
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -290,6 +291,23 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
           )}
         </form>
       </Card>
+
+      {/* Admin Login Link */}
+      <div className="text-center mt-6 relative z-10">
+        <button
+          type="button"
+          onClick={onAdminMode}
+          className="inline-flex items-center gap-2 px-6 py-3 rounded-full border-2 transition-all hover:shadow-lg"
+          style={{ 
+            borderColor: 'var(--eco-green-primary)',
+            color: 'var(--eco-green-primary)',
+            backgroundColor: 'white'
+          }}
+        >
+          <Lock className="w-4 h-4" />
+          <span className="font-medium">Admin Login</span>
+        </button>
+      </div>
 
       {/* Terms */}
       <p className="text-xs text-gray-500 text-center mt-6 px-4 relative z-10">

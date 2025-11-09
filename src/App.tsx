@@ -17,12 +17,20 @@ import { RewardsScreen } from "./components/rewards-screen";
 import { LeaderboardScreen } from "./components/leaderboard-screen";
 import { ProfileScreen } from "./components/profile-screen";
 
+// Import admin screens
+import { AdminLoginScreen } from "./components/admin-login-screen";
+import { AdminDashboardScreen } from "./components/admin-dashboard-screen";
+
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [currentNotification, setCurrentNotification] = useState<any>(null);
   const [isCheckingSession, setIsCheckingSession] = useState(true);
+  
+  // Admin mode states
+  const [isAdminMode, setIsAdminMode] = useState(false);
+  const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
 
   // Check for existing session on mount
   useEffect(() => {
@@ -64,6 +72,14 @@ export default function App() {
     } catch (error) {
       console.error('Logout error:', error);
     }
+  };
+
+  const handleAdminLogin = () => {
+    setIsAdminLoggedIn(true);
+  };
+
+  const handleAdminLogout = () => {
+    setIsAdminLoggedIn(false);
   };
 
   const handleTabChange = (tab: string) => {
@@ -110,6 +126,45 @@ export default function App() {
     }
   };
 
+  // Admin mode rendering
+  if (isAdminMode) {
+    if (!isAdminLoggedIn) {
+      return (
+        <>
+          <AdminLoginScreen onLogin={handleAdminLogin} />
+          <Toaster />
+          {/* Back button to return to user login */}
+          <button
+            onClick={() => setIsAdminMode(false)}
+            className="fixed top-4 left-4 text-sm flex items-center gap-2 px-4 py-2 rounded-full bg-white/90 hover:bg-white shadow-md transition-all z-50"
+            style={{ color: 'var(--eco-green-primary)' }}
+          >
+            ← Back to User Login
+          </button>
+        </>
+      );
+    }
+
+    return (
+      <>
+        <AdminDashboardScreen onLogout={handleAdminLogout} />
+        <Toaster />
+        {/* Back button to return to user app */}
+        <button
+          onClick={() => {
+            setIsAdminMode(false);
+            setIsAdminLoggedIn(false);
+          }}
+          className="fixed top-20 left-4 text-sm flex items-center gap-2 px-4 py-2 rounded-full bg-white/90 hover:bg-white shadow-md transition-all z-40"
+          style={{ color: 'var(--eco-green-primary)' }}
+        >
+          ← Exit Admin Panel
+        </button>
+      </>
+    );
+  }
+
+  // Regular user mode
   if (isCheckingSession) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: 'var(--eco-background)' }}>
@@ -127,7 +182,7 @@ export default function App() {
   if (!isLoggedIn) {
     return (
       <>
-        <LoginScreen onLogin={handleLogin} />
+        <LoginScreen onLogin={handleLogin} onAdminMode={() => setIsAdminMode(true)} />
         <Toaster />
       </>
     );
