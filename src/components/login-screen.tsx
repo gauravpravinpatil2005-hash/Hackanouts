@@ -8,10 +8,10 @@ import { toast } from "sonner@2.0.3";
 
 interface LoginScreenProps {
   onLogin: (userId: string) => void;
-  onAdminMode: () => void;
+  onBackToStart?: () => void;
 }
 
-export function LoginScreen({ onLogin, onAdminMode }: LoginScreenProps) {
+export function LoginScreen({ onLogin, onBackToStart }: LoginScreenProps) {
   const [isLogin, setIsLogin] = useState(false); // Default to Register tab
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -118,6 +118,7 @@ export function LoginScreen({ onLogin, onAdminMode }: LoginScreenProps) {
     setIsLoading(true);
     setTimeout(() => {
       toast.success('Logged in as Demo User! 🌱');
+      // Demo user - regular user privileges
       onLogin('demo-user-123');
       setIsLoading(false);
     }, 500);
@@ -337,24 +338,20 @@ export function LoginScreen({ onLogin, onAdminMode }: LoginScreenProps) {
             </div>
           )}
         </form>
-      </Card>
 
-      {/* Admin Login Link */}
-      <div className="text-center mt-6 relative z-10">
-        <button
-          type="button"
-          onClick={onAdminMode}
-          className="inline-flex items-center gap-2 px-6 py-3 rounded-full border-2 transition-all hover:shadow-lg"
-          style={{ 
-            borderColor: 'var(--eco-green-primary)',
-            color: 'var(--eco-green-primary)',
-            backgroundColor: 'white'
-          }}
-        >
-          <Lock className="w-4 h-4" />
-          <span className="font-medium">Admin Login</span>
-        </button>
-      </div>
+        {/* Back to Start Link */}
+        {onBackToStart && (
+          <div className="mt-4 text-center">
+            <button
+              type="button"
+              onClick={onBackToStart}
+              className="text-xs text-gray-500 hover:text-gray-700 underline"
+            >
+              ← Back to start
+            </button>
+          </div>
+        )}
+      </Card>
 
       {/* Terms */}
       <p className="text-xs text-gray-500 text-center mt-6 px-4 relative z-10">

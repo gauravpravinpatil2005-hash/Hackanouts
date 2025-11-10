@@ -370,7 +370,7 @@ export function TrackerScreen({ userId }: TrackerScreenProps) {
 
           {/* Placeholder when not tracking */}
           {!isTracking && (
-            <div className="absolute inset-0 flex items-center justify-center">
+            <div className="absolute inset-0 flex items-center justify-center pb-28">
               <div className="text-center">
                 <motion.div
                   animate={{ y: [0, -10, 0] }}
@@ -379,7 +379,7 @@ export function TrackerScreen({ userId }: TrackerScreenProps) {
                   <MapPin className="w-16 h-16 text-green-600 mx-auto mb-3" />
                 </motion.div>
                 <p className="text-gray-700 font-semibold text-lg">Ready to Track</p>
-                <p className="text-sm text-gray-500 mt-1">Press Start to begin your journey</p>
+                <p className="text-sm text-gray-500 mt-1 px-4">Press Start to begin your journey</p>
               </div>
             </div>
           )}

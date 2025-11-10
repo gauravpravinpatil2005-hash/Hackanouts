@@ -3,7 +3,7 @@ import { Gift, Star, ExternalLink, CheckCircle, Leaf, Sparkles, Copy, X, Chevron
 import { Card } from "./ui/card";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "./ui/dialog";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { motion, AnimatePresence } from "motion/react";
 import { toast } from "sonner@2.0.3";
@@ -629,6 +629,9 @@ export function RewardsScreen({ userId }: RewardsScreenProps) {
             <div>
               <DialogHeader>
                 <DialogTitle className="text-left">Redeem Reward</DialogTitle>
+                <DialogDescription>
+                  Redeem your eco-points for exclusive brand discounts.
+                </DialogDescription>
               </DialogHeader>
               
               <div className="mt-4">

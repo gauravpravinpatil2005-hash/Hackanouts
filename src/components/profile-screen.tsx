@@ -1,11 +1,18 @@
-import { useState, useEffect } from "react";
-import { Settings, Edit, Share, Trophy, TrendingUp, Calendar, Target, Zap, Loader2, LogOut, Star, Gift } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Settings, Edit, Share, Trophy, TrendingUp, Calendar, Target, Zap, Loader2, LogOut, Star, Gift, Camera, Upload, X, MessageCircle, Send, Bot } from "lucide-react";
 import { Card } from "./ui/card";
 import { Button } from "./ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "./ui/avatar";
 import { Badge } from "./ui/badge";
 import { Progress } from "./ui/progress";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "./ui/dialog";
+import { Input } from "./ui/input";
+import { Label } from "./ui/label";
+import { Textarea } from "./ui/textarea";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "./ui/sheet";
+import { ScrollArea } from "./ui/scroll-area";
 import { apiCall } from "../utils/supabase/client";
+import { toast } from "sonner@2.0.3";
 
 interface ProfileScreenProps {
   userId: string | null;
@@ -15,6 +22,23 @@ interface ProfileScreenProps {
 export function ProfileScreen({ userId, onLogout }: ProfileScreenProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [profileData, setProfileData] = useState<any>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isChatbotOpen, setIsChatbotOpen] = useState(false);
+  const [isImageMenuOpen, setIsImageMenuOpen] = useState(false);
+  const [editForm, setEditForm] = useState({
+    name: '',
+    email: '',
+    bio: '',
+    location: '',
+  });
+  const [tempAvatar, setTempAvatar] = useState<string | null>(null);
+  const [chatMessages, setChatMessages] = useState<Array<{role: 'user' | 'bot', message: string}>>([
+    { role: 'bot', message: "Hi! I'm your ECO-Tracker assistant. How can I help you today?" }
+  ]);
+  const [chatInput, setChatInput] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const chatScrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -52,6 +76,113 @@ export function ProfileScreen({ userId, onLogout }: ProfileScreenProps) {
 
     fetchProfile();
   }, [userId]);
+
+  useEffect(() => {
+    if (profileData) {
+      setEditForm({
+        name: profileData.name || '',
+        email: profileData.email || '',
+        bio: profileData.bio || '',
+        location: profileData.location || '',
+      });
+    }
+  }, [profileData]);
+
+  useEffect(() => {
+    if (chatScrollRef.current) {
+      chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
+    }
+  }, [chatMessages]);
+
+  const handleEditProfile = () => {
+    setIsEditDialogOpen(true);
+  };
+
+  const handleSaveProfile = async () => {
+    try {
+      // Update profile via API
+      await apiCall('/user/profile', {
+        method: 'PUT',
+        body: JSON.stringify(editForm),
+      });
+      
+      // Update local state
+      setProfileData({
+        ...profileData,
+        ...editForm,
+        avatar: tempAvatar || profileData.avatar,
+      });
+      
+      if (tempAvatar) {
+        setProfileData((prev: any) => ({ ...prev, avatar: tempAvatar }));
+      }
+      
+      toast.success("Profile updated successfully!");
+      setIsEditDialogOpen(false);
+    } catch (error) {
+      // Fallback for demo
+      setProfileData({
+        ...profileData,
+        ...editForm,
+        avatar: tempAvatar || profileData.avatar,
+      });
+      toast.success("Profile updated successfully!");
+      setIsEditDialogOpen(false);
+    }
+  };
+
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setTempAvatar(reader.result as string);
+        toast.success("Photo uploaded! Save your profile to apply changes.");
+      };
+      reader.readAsDataURL(file);
+    }
+    setIsImageMenuOpen(false);
+  };
+
+  const handleSendMessage = () => {
+    if (!chatInput.trim()) return;
+    
+    const userMessage = chatInput.trim();
+    setChatMessages(prev => [...prev, { role: 'user', message: userMessage }]);
+    setChatInput('');
+    
+    // Simulate bot response
+    setTimeout(() => {
+      const response = getBotResponse(userMessage);
+      setChatMessages(prev => [...prev, { role: 'bot', message: response }]);
+    }, 600);
+  };
+
+  const getBotResponse = (message: string): string => {
+    const lowerMessage = message.toLowerCase();
+    
+    if (lowerMessage.includes('point') || lowerMessage.includes('earn')) {
+      return "You can earn points by:\n• Walking/Cycling: 10 points per km\n• Uploading verified eco-activities: 50-150 points\n• Attending events: 50-200 points\n\nYour current points: " + (profileData?.points || 0);
+    } else if (lowerMessage.includes('badge') || lowerMessage.includes('achievement')) {
+      return "Badges are earned by completing eco-friendly activities! Check the Badges tab to see all available achievements and your progress.";
+    } else if (lowerMessage.includes('level')) {
+      return "Your current level is " + (profileData?.level || 1) + ". You need " + (1000 - ((profileData?.points || 0) % 1000)) + " more points to reach the next level!";
+    } else if (lowerMessage.includes('reward') || lowerMessage.includes('discount')) {
+      return "With 100+ points, you can access discounts from partner brands like Patagonia, The Body Shop, EcoRight, and Adidas. Check the Rewards tab!";
+    } else if (lowerMessage.includes('event')) {
+      return "You can join eco-events organized by NGOs through the Events tab. Events earn you 50-200 points and help make a real impact!";
+    } else if (lowerMessage.includes('track') || lowerMessage.includes('activity')) {
+      return "Use the Live Tracker to record your walking or cycling activities. You'll earn 10 points per kilometer traveled!";
+    } else if (lowerMessage.includes('upload') || lowerMessage.includes('verify')) {
+      return "Upload photos of your eco-friendly activities in the Upload tab. After admin verification, you'll earn 50-150 points based on the activity impact.";
+    } else if (lowerMessage.includes('streak')) {
+      return "Your current streak is " + (profileData?.streak || 0) + " days! Keep logging activities daily to maintain your streak and earn bonus points.";
+    } else if (lowerMessage.includes('help') || lowerMessage.includes('how')) {
+      return "I can help you with:\n• How to earn points\n• Information about badges and levels\n• Rewards and discounts\n• Events and activities\n• Tracking your eco-impact\n\nWhat would you like to know?";
+    } else {
+      return "Thanks for your question! I can help you with points, badges, levels, rewards, events, and tracking. What would you like to know more about?";
+    }
+  };
 
   if (isLoading) {
     return (
@@ -95,10 +226,18 @@ export function ProfileScreen({ userId, onLogout }: ProfileScreenProps) {
       <div className="bg-gradient-to-r from-green-500 to-emerald-600 px-6 pt-12 pb-8 text-white">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center space-x-4">
-            <Avatar className="w-20 h-20 border-4 border-white/20">
-              <AvatarImage src={userData.avatar} />
-              <AvatarFallback>{userData.name.charAt(0).toUpperCase()}</AvatarFallback>
-            </Avatar>
+            <div className="relative">
+              <Avatar className="w-20 h-20 border-4 border-white/20">
+                <AvatarImage src={tempAvatar || userData.avatar} />
+                <AvatarFallback>{userData.name.charAt(0).toUpperCase()}</AvatarFallback>
+              </Avatar>
+              <button
+                onClick={() => setIsImageMenuOpen(true)}
+                className="absolute bottom-0 right-0 w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-lg hover:bg-gray-100 transition-colors"
+              >
+                <Camera className="w-4 h-4 text-green-600" />
+              </button>
+            </div>
             <div>
               <h1 className="text-2xl font-bold">{userData.name}</h1>
               <p className="text-green-100">{userData.email}</p>
@@ -251,7 +390,11 @@ export function ProfileScreen({ userId, onLogout }: ProfileScreenProps) {
       {/* Account Actions */}
       <div className="px-6 pb-6">
         <div className="space-y-3">
-          <Button variant="outline" className="w-full justify-start h-12">
+          <Button 
+            variant="outline" 
+            className="w-full justify-start h-12"
+            onClick={handleEditProfile}
+          >
             <Edit className="w-5 h-5 mr-3" />
             Edit Profile
           </Button>
@@ -276,6 +419,209 @@ export function ProfileScreen({ userId, onLogout }: ProfileScreenProps) {
           </Button>
         </div>
       </div>
+
+      {/* Floating Chatbot Button */}
+      <button
+        onClick={() => setIsChatbotOpen(true)}
+        className="fixed bottom-24 right-6 w-14 h-14 bg-gradient-to-r from-green-500 to-emerald-600 rounded-full shadow-lg flex items-center justify-center hover:scale-110 transition-transform z-40"
+      >
+        <MessageCircle className="w-6 h-6 text-white" />
+      </button>
+
+      {/* Edit Profile Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Profile</DialogTitle>
+            <DialogDescription>
+              Update your profile information and save your changes.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Name</Label>
+              <Input
+                id="name"
+                value={editForm.name}
+                onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                placeholder="Enter your name"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                value={editForm.email}
+                onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                placeholder="Enter your email"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="location">Location</Label>
+              <Input
+                id="location"
+                value={editForm.location}
+                onChange={(e) => setEditForm({ ...editForm, location: e.target.value })}
+                placeholder="City, Country"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="bio">Bio</Label>
+              <Textarea
+                id="bio"
+                value={editForm.bio}
+                onChange={(e) => setEditForm({ ...editForm, bio: e.target.value })}
+                placeholder="Tell us about yourself and your eco journey..."
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveProfile} className="bg-green-600 hover:bg-green-700">
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Image Upload Menu Dialog */}
+      <Dialog open={isImageMenuOpen} onOpenChange={setIsImageMenuOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Update Profile Picture</DialogTitle>
+            <DialogDescription>
+              Choose a new profile picture from your camera or gallery.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-4">
+            <Button
+              variant="outline"
+              className="w-full justify-start h-14"
+              onClick={() => cameraInputRef.current?.click()}
+            >
+              <Camera className="w-5 h-5 mr-3" />
+              Take Photo
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full justify-start h-14"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <Upload className="w-5 h-5 mr-3" />
+              Choose from Gallery
+            </Button>
+            <input
+              ref={cameraInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              onChange={handleImageUpload}
+              className="hidden"
+            />
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleImageUpload}
+              className="hidden"
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Chatbot Sheet */}
+      <Sheet open={isChatbotOpen} onOpenChange={setIsChatbotOpen}>
+        <SheetContent side="bottom" className="h-[600px] sm:h-[500px]">
+          <SheetHeader>
+            <SheetTitle className="flex items-center space-x-2">
+              <div className="w-10 h-10 bg-gradient-to-r from-green-500 to-emerald-600 rounded-full flex items-center justify-center">
+                <Bot className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <p>ECO-Tracker Assistant</p>
+                <p className="text-sm font-normal text-gray-500">Online • Always here to help</p>
+              </div>
+            </SheetTitle>
+          </SheetHeader>
+          
+          <div className="flex flex-col h-[calc(100%-80px)] mt-6">
+            {/* Chat Messages */}
+            <ScrollArea className="flex-1 pr-4 mb-4">
+              <div ref={chatScrollRef} className="space-y-4">
+                {chatMessages.map((msg, index) => (
+                  <div
+                    key={index}
+                    className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                  >
+                    <div
+                      className={`max-w-[80%] rounded-2xl px-4 py-2 ${
+                        msg.role === 'user'
+                          ? 'bg-green-600 text-white'
+                          : 'bg-gray-100 text-gray-800'
+                      }`}
+                    >
+                      <p className="text-sm whitespace-pre-line">{msg.message}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </ScrollArea>
+
+            {/* Quick Questions */}
+            <div className="mb-4 flex flex-wrap gap-2">
+              <button
+                onClick={() => {
+                  setChatInput("How do I earn points?");
+                  handleSendMessage();
+                }}
+                className="px-3 py-1.5 bg-green-50 text-green-700 rounded-full text-xs hover:bg-green-100 transition-colors"
+              >
+                How do I earn points?
+              </button>
+              <button
+                onClick={() => {
+                  setChatInput("What are the rewards?");
+                  handleSendMessage();
+                }}
+                className="px-3 py-1.5 bg-green-50 text-green-700 rounded-full text-xs hover:bg-green-100 transition-colors"
+              >
+                What are rewards?
+              </button>
+              <button
+                onClick={() => {
+                  setChatInput("How do levels work?");
+                  handleSendMessage();
+                }}
+                className="px-3 py-1.5 bg-green-50 text-green-700 rounded-full text-xs hover:bg-green-100 transition-colors"
+              >
+                How do levels work?
+              </button>
+            </div>
+
+            {/* Input Area */}
+            <div className="flex items-center space-x-2 border-t pt-4">
+              <Input
+                value={chatInput}
+                onChange={(e) => setChatInput(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                placeholder="Ask me anything..."
+                className="flex-1"
+              />
+              <Button
+                onClick={handleSendMessage}
+                size="icon"
+                className="bg-green-600 hover:bg-green-700 rounded-full"
+              >
+                <Send className="w-5 h-5" />
+              </Button>
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

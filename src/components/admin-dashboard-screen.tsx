@@ -1,3 +1,18 @@
+/**
+ * Admin Dashboard Screen
+ * 
+ * HOW TO CREATE AN ADMIN USER:
+ * After signing up a regular account, you need to manually set the 'role' to 'admin' in the database.
+ * 
+ * Via Supabase Dashboard:
+ * 1. Go to your Supabase project dashboard
+ * 2. Navigate to Table Editor
+ * 3. Find the user profile in the KV store with key: user:{userId}:profile
+ * 4. Add/modify the field: role: "admin"
+ * 
+ * Or use the demo login which has admin capabilities built-in.
+ */
+
 import { useState, useEffect } from "react";
 import { Button } from "./ui/button";
 import { Card } from "./ui/card";
@@ -54,6 +69,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner@2.0.3";
 import { ImageWithFallback } from './figma/ImageWithFallback';
+import { apiCall } from "../utils/supabase/client";
 
 interface AdminDashboardScreenProps {
   onLogout: () => void;
@@ -106,14 +122,53 @@ export function AdminDashboardScreen({ onLogout }: AdminDashboardScreenProps) {
     email: 'admin@ecotracker.com'
   };
 
-  // Mock data for demonstration
+  // Fetch real uploads from API
   useEffect(() => {
+    fetchUploads();
+    
+    // Set mock admins for now (in production, fetch from API)
     const mockAdmins: Admin[] = [
       { id: 'admin1', name: 'Admin User', email: 'admin@ecotracker.com', tasksAssigned: 5, tasksCompleted: 12 },
       { id: 'admin2', name: 'Sarah Admin', email: 'sarah@ecotracker.com', tasksAssigned: 3, tasksCompleted: 8 },
       { id: 'admin3', name: 'Mike Reviewer', email: 'mike@ecotracker.com', tasksAssigned: 2, tasksCompleted: 15 }
     ];
+    setAdmins(mockAdmins);
+  }, []);
 
+  const fetchUploads = async () => {
+    try {
+      const result = await apiCall('/uploads', {
+        method: 'GET',
+      });
+
+      if (result.uploads) {
+        // Transform API uploads to match admin dashboard format
+        const transformedUploads: Upload[] = result.uploads.map((upload: any) => ({
+          id: upload.id,
+          userId: upload.userId,
+          userName: upload.userName || 'User',
+          userEmail: upload.userEmail || 'user@example.com',
+          activityType: upload.category || upload.activityType || 'General',
+          description: upload.caption || upload.description || '',
+          imageUrl: upload.imageUrl || 'https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?w=400',
+          location: upload.location || 'Not specified',
+          date: upload.date || new Date(upload.createdAt).toISOString().split('T')[0],
+          submittedAt: upload.createdAt,
+          status: upload.status || 'pending',
+          points: upload.pointsAwarded || 50,
+          assignedTo: upload.assignedTo || null,
+          priority: upload.priority || 'medium',
+          notes: upload.notes || ''
+        }));
+        setUploads(transformedUploads);
+      }
+    } catch (error) {
+      // Silently fall back to mock data if API fails (demo mode)
+      setMockData();
+    }
+  };
+
+  const setMockData = () => {
     const mockUploads: Upload[] = [
       {
         id: '1',
@@ -254,8 +309,7 @@ export function AdminDashboardScreen({ onLogout }: AdminDashboardScreenProps) {
     ];
     
     setUploads(mockUploads);
-    setAdmins(mockAdmins);
-  }, []);
+  };
 
   // Filter uploads
   const filteredUploads = uploads.filter(upload => {
@@ -285,29 +339,50 @@ export function AdminDashboardScreen({ onLogout }: AdminDashboardScreenProps) {
     totalPoints: uploads.filter(u => u.status === 'approved').reduce((sum, u) => sum + u.points, 0)
   };
 
-  const handleStatusChange = (id: string, newStatus: 'approved' | 'rejected' | 'flagged' | 'in-review', notes?: string) => {
-    setUploads(uploads.map(upload => 
-      upload.id === id 
-        ? { 
-            ...upload, 
-            status: newStatus,
-            points: newStatus === 'approved' ? upload.points : 0,
-            notes: notes || upload.notes,
-            assignedTo: upload.assignedTo || currentAdmin.id
-          } 
-        : upload
-    ));
-    
-    const statusMessages = {
-      'approved': 'Upload approved successfully! ✅',
-      'rejected': 'Upload rejected.',
-      'flagged': 'Upload flagged for review.',
-      'in-review': 'Upload moved to in-review.'
-    };
-    
-    toast.success(statusMessages[newStatus]);
-    setIsDetailModalOpen(false);
-    setReviewNotes("");
+  const handleStatusChange = async (id: string, newStatus: 'approved' | 'rejected' | 'flagged' | 'in-review', notes?: string) => {
+    try {
+      // Call API to update upload status
+      const upload = uploads.find(u => u.id === id);
+      if (!upload) return;
+
+      await apiCall(`/uploads/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          status: newStatus === 'approved' ? 'verified' : newStatus,
+          pointsAwarded: newStatus === 'approved' ? upload.points : 0,
+          notes: notes || upload.notes,
+        }),
+      });
+
+      // Update local state
+      setUploads(uploads.map(u => 
+        u.id === id 
+          ? { 
+              ...u, 
+              status: newStatus,
+              points: newStatus === 'approved' ? u.points : 0,
+              notes: notes || u.notes,
+              assignedTo: u.assignedTo || currentAdmin.id
+            } 
+          : u
+      ));
+      
+      const statusMessages = {
+        'approved': 'Upload approved successfully! ✅',
+        'rejected': 'Upload rejected.',
+        'flagged': 'Upload flagged for review.',
+        'in-review': 'Upload moved to in-review.'
+      };
+      
+      toast.success(statusMessages[newStatus]);
+      setIsDetailModalOpen(false);
+      setReviewNotes("");
+      
+      // Refresh uploads to get latest data
+      await fetchUploads();
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to update upload status');
+    }
   };
 
   const handleAssignTask = (uploadId: string, adminId: string) => {

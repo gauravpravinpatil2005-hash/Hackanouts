@@ -405,6 +405,48 @@ export function DashboardScreen({ onNavigate, userId }: DashboardScreenProps) {
         </div>
       </div>
 
+      {/* Eco Games Feature - New Section */}
+      <div className="px-6 mb-6">
+        <Card 
+          onClick={() => onNavigate('games')}
+          className="overflow-hidden border-0 shadow-lg cursor-pointer active:scale-98 transition-transform"
+        >
+          <div className="bg-gradient-to-r from-purple-500 via-pink-500 to-purple-600 p-6 text-white relative">
+            {/* Decorative elements */}
+            <div className="absolute top-0 right-0 text-6xl opacity-20">🎮</div>
+            <div className="absolute bottom-0 left-0 text-4xl opacity-20">🌿</div>
+            
+            <div className="relative z-10">
+              <div className="flex items-center mb-3">
+                <Badge className="bg-yellow-400 text-yellow-900 border-0 mr-2">
+                  NEW
+                </Badge>
+                <Sparkles className="w-5 h-5 animate-pulse" />
+              </div>
+              <h3 className="text-xl font-bold mb-2">Play Eco Games!</h3>
+              <p className="text-purple-100 text-sm mb-4">
+                Learn about the environment while earning points through fun interactive games
+              </p>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-4">
+                  <div className="text-center">
+                    <p className="text-2xl font-bold">6</p>
+                    <p className="text-xs text-purple-200">Games</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-2xl font-bold">20-150</p>
+                    <p className="text-xs text-purple-200">Points per game</p>
+                  </div>
+                </div>
+                <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center">
+                  <ArrowRight className="w-5 h-5" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </Card>
+      </div>
+
       {/* Brand Collaboration Section */}
       {(profile?.points || 0) >= 100 && (
         <div className="px-6 mb-6">
@@ -510,21 +552,21 @@ export function DashboardScreen({ onNavigate, userId }: DashboardScreenProps) {
           </Button>
           
           <Button 
+            onClick={() => onNavigate('leaderboard')}
+            className="h-16 text-white rounded-xl flex flex-col items-center justify-center space-y-1 shadow-lg"
+            style={{ background: 'linear-gradient(135deg, #FFB300 0%, #FFA000 100%)' }}
+          >
+            <Trophy className="w-6 h-6" />
+            <span className="text-sm">Leaderboard</span>
+          </Button>
+          
+          <Button 
             onClick={() => onNavigate('events')}
             className="h-16 text-white rounded-xl flex flex-col items-center justify-center space-y-1 shadow-lg"
             style={{ background: 'linear-gradient(135deg, #8E24AA 0%, #BA68C8 100%)' }}
           >
             <Calendar className="w-6 h-6" />
             <span className="text-sm">Join Events</span>
-          </Button>
-          
-          <Button 
-            onClick={() => onNavigate('community')}
-            className="h-16 text-white rounded-xl flex flex-col items-center justify-center space-y-1 shadow-lg"
-            style={{ background: 'linear-gradient(135deg, #FF6B35 0%, #FF8A65 100%)' }}
-          >
-            <Users className="w-6 h-6" />
-            <span className="text-sm">Community</span>
           </Button>
         </div>
       </div>

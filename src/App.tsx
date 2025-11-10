@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { StartScreen } from "./components/start-screen";
 import { LoginScreen } from "./components/login-screen";
 import { DashboardScreen } from "./components/dashboard-screen";
 import { BottomNavigation } from "./components/bottom-navigation";
@@ -16,6 +17,7 @@ import { BadgesScreen } from "./components/badges-screen";
 import { RewardsScreen } from "./components/rewards-screen";
 import { LeaderboardScreen } from "./components/leaderboard-screen";
 import { ProfileScreen } from "./components/profile-screen";
+import { GamesScreen } from "./components/games-screen";
 
 // Import admin screens
 import { AdminLoginScreen } from "./components/admin-login-screen";
@@ -28,10 +30,8 @@ export default function App() {
   const [currentNotification, setCurrentNotification] = useState<any>(null);
   const [isCheckingSession, setIsCheckingSession] = useState(true);
   const [userPoints, setUserPoints] = useState(0);
-  
-  // Admin mode states
-  const [isAdminMode, setIsAdminMode] = useState(false);
-  const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [loginMode, setLoginMode] = useState<'start' | 'user' | 'admin'>('start');
 
   // Check for existing session on mount and fetch user points
   useEffect(() => {
@@ -68,6 +68,13 @@ export default function App() {
   const handleLogin = (uid: string) => {
     setIsLoggedIn(true);
     setUserId(uid);
+    setIsAdmin(false);
+  };
+
+  const handleAdminLogin = () => {
+    setIsLoggedIn(true);
+    setUserId('admin-user');
+    setIsAdmin(true);
   };
 
   const handleLogout = async () => {
@@ -76,18 +83,12 @@ export default function App() {
       await supabase.auth.signOut();
       setIsLoggedIn(false);
       setUserId(null);
+      setIsAdmin(false);
+      setLoginMode('start');
       setActiveTab('dashboard');
     } catch (error) {
       // Logout error - continue anyway
     }
-  };
-
-  const handleAdminLogin = () => {
-    setIsAdminLoggedIn(true);
-  };
-
-  const handleAdminLogout = () => {
-    setIsAdminLoggedIn(false);
   };
 
   const handleTabChange = (tab: string) => {
@@ -105,6 +106,10 @@ export default function App() {
     } else if (currentNotification?.type === 'badge_earned') {
       setActiveTab('badges');
     }
+  };
+
+  const handlePointsEarned = (points: number) => {
+    setUserPoints(prev => prev + points);
   };
 
   const renderScreen = () => {
@@ -129,50 +134,13 @@ export default function App() {
         return <BadgesScreen userId={userId} />;
       case 'rewards':
         return <RewardsScreen userId={userId} />;
+      case 'games':
+        return <GamesScreen onPointsEarned={handlePointsEarned} />;
       default:
         return <DashboardScreen onNavigate={handleNavigate} userId={userId} />;
     }
   };
 
-  // Admin mode rendering
-  if (isAdminMode) {
-    if (!isAdminLoggedIn) {
-      return (
-        <>
-          <AdminLoginScreen onLogin={handleAdminLogin} />
-          <Toaster />
-          {/* Back button to return to user login */}
-          <button
-            onClick={() => setIsAdminMode(false)}
-            className="fixed top-4 left-4 text-sm flex items-center gap-2 px-4 py-2 rounded-full bg-white/90 hover:bg-white shadow-md transition-all z-50"
-            style={{ color: 'var(--eco-green-primary)' }}
-          >
-            ← Back to User Login
-          </button>
-        </>
-      );
-    }
-
-    return (
-      <>
-        <AdminDashboardScreen onLogout={handleAdminLogout} />
-        <Toaster />
-        {/* Back button to return to user app */}
-        <button
-          onClick={() => {
-            setIsAdminMode(false);
-            setIsAdminLoggedIn(false);
-          }}
-          className="fixed top-20 left-4 text-sm flex items-center gap-2 px-4 py-2 rounded-full bg-white/90 hover:bg-white shadow-md transition-all z-40"
-          style={{ color: 'var(--eco-green-primary)' }}
-        >
-          ← Exit Admin Panel
-        </button>
-      </>
-    );
-  }
-
-  // Regular user mode
   if (isCheckingSession) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: 'var(--eco-background)' }}>
@@ -188,14 +156,55 @@ export default function App() {
   }
 
   if (!isLoggedIn) {
+    // Show start screen
+    if (loginMode === 'start') {
+      return (
+        <>
+          <StartScreen 
+            onUserLogin={() => setLoginMode('user')}
+            onAdminLogin={() => setLoginMode('admin')}
+          />
+          <Toaster />
+        </>
+      );
+    }
+    
+    // Show admin login
+    if (loginMode === 'admin') {
+      return (
+        <>
+          <AdminLoginScreen 
+            onLogin={handleAdminLogin}
+            onBackToStart={() => setLoginMode('start')}
+          />
+          <Toaster />
+        </>
+      );
+    }
+    
+    // Show regular user login
     return (
       <>
-        <LoginScreen onLogin={handleLogin} onAdminMode={() => setIsAdminMode(true)} />
+        <LoginScreen 
+          onLogin={handleLogin}
+          onBackToStart={() => setLoginMode('start')}
+        />
         <Toaster />
       </>
     );
   }
 
+  // Admin users get a completely separate interface - ONLY the admin dashboard
+  if (isAdmin) {
+    return (
+      <div className="min-h-screen" style={{ backgroundColor: '#F9F9F9' }}>
+        <AdminDashboardScreen onLogout={handleLogout} />
+        <Toaster />
+      </div>
+    );
+  }
+
+  // Regular users get the full app experience with bottom navigation
   return (
     <div className="relative min-h-screen" style={{ backgroundColor: 'var(--eco-background)' }}>
       {/* Main Content */}

@@ -106,10 +106,15 @@ app.post("/make-server-86043ce1/auth/signin", async (c) => {
       return c.json({ error: error.message }, 400);
     }
 
+    // Check if user is admin
+    const profile = await kv.get(`user:${data.user.id}:profile`);
+    const isAdmin = profile?.role === 'admin';
+
     return c.json({ 
       success: true, 
       session: data.session,
-      user: data.user 
+      user: data.user,
+      isAdmin
     });
   } catch (error) {
     console.log(`Server error during signin: ${error}`);
@@ -141,7 +146,10 @@ app.get("/make-server-86043ce1/user/profile", async (c) => {
       return c.json({ error: 'Profile not found' }, 404);
     }
 
-    return c.json({ profile });
+    return c.json({ 
+      profile,
+      isAdmin: profile.role === 'admin'
+    });
   } catch (error) {
     console.log(`Error fetching user profile: ${error}`);
     return c.json({ error: "Failed to fetch profile" }, 500);
@@ -323,7 +331,7 @@ app.post("/make-server-86043ce1/uploads", async (c) => {
   }
 });
 
-// Get user uploads
+// Get user uploads (or all uploads if admin)
 app.get("/make-server-86043ce1/uploads", async (c) => {
   try {
     const accessToken = c.req.header('Authorization')?.split(' ')[1];
@@ -339,14 +347,86 @@ app.get("/make-server-86043ce1/uploads", async (c) => {
       return c.json({ error: 'Unauthorized' }, 401);
     }
 
-    const uploads = await kv.getByPrefix(`upload:${user.id}:`);
+    // Check if user is admin
+    const profile = await kv.get(`user:${user.id}:profile`);
+    const isAdmin = profile?.role === 'admin';
+
+    let uploads;
+    if (isAdmin) {
+      // Admins can see all uploads
+      uploads = await kv.getByPrefix('upload:');
+    } else {
+      // Regular users see only their uploads
+      uploads = await kv.getByPrefix(`upload:${user.id}:`);
+    }
     
     uploads.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
-    return c.json({ uploads });
+    return c.json({ uploads, isAdmin });
   } catch (error) {
     console.log(`Error fetching uploads: ${error}`);
     return c.json({ error: "Failed to fetch uploads" }, 500);
+  }
+});
+
+// Update upload status (admin only)
+app.put("/make-server-86043ce1/uploads/:uploadId", async (c) => {
+  try {
+    const accessToken = c.req.header('Authorization')?.split(' ')[1];
+    
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+    );
+
+    const { data: { user }, error } = await supabase.auth.getUser(accessToken);
+    
+    if (!user?.id || error) {
+      return c.json({ error: 'Unauthorized' }, 401);
+    }
+
+    // Check if user is admin
+    const profile = await kv.get(`user:${user.id}:profile`);
+    if (profile?.role !== 'admin') {
+      return c.json({ error: 'Admin access required' }, 403);
+    }
+
+    const uploadId = c.req.param('uploadId');
+    const updateData = await c.req.json();
+    
+    const upload = await kv.get(uploadId);
+    if (!upload) {
+      return c.json({ error: 'Upload not found' }, 404);
+    }
+
+    const updatedUpload = {
+      ...upload,
+      ...updateData,
+      verifiedBy: profile.name || profile.email,
+      verifiedAt: new Date().toISOString(),
+    };
+
+    await kv.set(uploadId, updatedUpload);
+
+    // If approved, award points to user
+    if (updateData.status === 'verified' && updateData.pointsAwarded) {
+      const userProfile = await kv.get(`user:${upload.userId}:profile`);
+      if (userProfile) {
+        const points = updateData.pointsAwarded;
+        const updatedUserProfile = {
+          ...userProfile,
+          points: (userProfile.points || 0) + points,
+          ecoScore: (userProfile.ecoScore || 0) + points,
+          weeklyPoints: (userProfile.weeklyPoints || 0) + points,
+        };
+        await kv.set(`user:${upload.userId}:profile`, updatedUserProfile);
+      }
+    }
+
+    return c.json({ success: true, upload: updatedUpload });
+  } catch (error) {
+    console.log(`Error updating upload: ${error}`);
+    return c.json({ error: "Failed to update upload" }, 500);
   }
 });
 

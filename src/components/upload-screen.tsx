@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Camera, Upload, X, MapPin, Tag, Clock, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
+import { Camera, Upload, X, MapPin, Clock, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
 import { Card } from "./ui/card";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -35,64 +35,64 @@ export function UploadScreen({ userId }: UploadScreenProps) {
   const [uploads, setUploads] = useState<UploadedProof[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchUploads = async () => {
-      if (!userId) {
-        setIsLoading(false);
-        return;
-      }
+  const fetchUploads = async () => {
+    if (!userId) {
+      setIsLoading(false);
+      return;
+    }
+    
+    try {
+      setIsLoading(true);
+      const data = await apiCall('/uploads');
+      setUploads(data.uploads || []);
+    } catch (error) {
+      console.log('Error fetching uploads, using demo data:', error);
       
-      try {
-        setIsLoading(true);
-        const data = await apiCall('/uploads');
-        setUploads(data.uploads || []);
-      } catch (error) {
-        // API error - using demo data fallback
-        
-        // Use demo data if API fails
-        const demoUploads: UploadedProof[] = [
-          {
-            id: '1',
-            image: 'https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?w=400',
-            caption: 'Recycled 5kg of plastic bottles',
-            category: 'recycling',
-            location: 'Downtown Recycling Center',
-            status: 'verified',
-            pointsAwarded: 50,
-            uploadDate: new Date(Date.now() - 86400000).toISOString(),
-            createdAt: new Date(Date.now() - 86400000).toISOString(),
-            verifiedBy: 'Admin',
-          },
-          {
-            id: '2',
-            image: 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=400',
-            caption: 'Community tree planting event',
-            category: 'planting',
-            location: 'Central Park',
-            status: 'pending',
-            uploadDate: new Date(Date.now() - 3600000).toISOString(),
-            createdAt: new Date(Date.now() - 3600000).toISOString(),
-          },
-          {
-            id: '3',
-            image: 'https://images.unsplash.com/photo-1618477461853-cf6ed80faba5?w=400',
-            caption: 'Beach cleanup drive',
-            category: 'cleanup',
-            location: 'Sunset Beach',
-            status: 'verified',
-            pointsAwarded: 100,
-            uploadDate: new Date(Date.now() - 172800000).toISOString(),
-            createdAt: new Date(Date.now() - 172800000).toISOString(),
-            verifiedBy: 'Admin',
-          },
-        ];
-        
-        setUploads(demoUploads);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+      // Use demo data if API fails
+      const demoUploads: UploadedProof[] = [
+        {
+          id: '1',
+          image: 'https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?w=400',
+          caption: 'Recycled 5kg of plastic bottles',
+          category: 'recycling',
+          location: 'Downtown Recycling Center',
+          status: 'verified',
+          pointsAwarded: 50,
+          uploadDate: new Date(Date.now() - 86400000).toISOString(),
+          createdAt: new Date(Date.now() - 86400000).toISOString(),
+          verifiedBy: 'Admin',
+        },
+        {
+          id: '2',
+          image: 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=400',
+          caption: 'Community tree planting event',
+          category: 'planting',
+          location: 'Central Park',
+          status: 'pending',
+          uploadDate: new Date(Date.now() - 3600000).toISOString(),
+          createdAt: new Date(Date.now() - 3600000).toISOString(),
+        },
+        {
+          id: '3',
+          image: 'https://images.unsplash.com/photo-1618477461853-cf6ed80faba5?w=400',
+          caption: 'Beach cleanup drive',
+          category: 'cleanup',
+          location: 'Sunset Beach',
+          status: 'verified',
+          pointsAwarded: 100,
+          uploadDate: new Date(Date.now() - 172800000).toISOString(),
+          createdAt: new Date(Date.now() - 172800000).toISOString(),
+          verifiedBy: 'Admin',
+        },
+      ];
+      
+      setUploads(demoUploads);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchUploads();
   }, [userId]);
 
@@ -177,6 +177,8 @@ export function UploadScreen({ userId }: UploadScreenProps) {
         return 'bg-gray-100 text-gray-800';
     }
   };
+
+
 
   return (
     <div className="flex flex-col min-h-screen pb-20" style={{ backgroundColor: 'var(--eco-background)' }}>
@@ -333,9 +335,11 @@ export function UploadScreen({ userId }: UploadScreenProps) {
 
       {/* Recent Uploads */}
       <div className="px-6 pb-6">
-        <h2 className="text-lg font-semibold mb-4" style={{ color: 'var(--eco-green-primary)' }}>
-          📋 Recent Uploads
-        </h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold" style={{ color: 'var(--eco-green-primary)' }}>
+            📋 Recent Uploads
+          </h2>
+        </div>
         
         {isLoading ? (
           <div className="flex justify-center py-8">
@@ -346,13 +350,13 @@ export function UploadScreen({ userId }: UploadScreenProps) {
             {uploads.map((upload) => (
             <Card key={upload.id} className="p-4 shadow-sm border-0">
               <div className="flex space-x-4">
-                <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center">
+                <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center shrink-0">
                   <Camera className="w-6 h-6 text-gray-500" />
                 </div>
                 
-                <div className="flex-1">
+                <div className="flex-1 min-w-0">
                   <div className="flex items-start justify-between mb-2">
-                    <div>
+                    <div className="flex-1 min-w-0">
                       <p className="font-medium text-gray-800 text-sm leading-tight">{upload.caption}</p>
                       <p className="text-xs text-gray-500 mt-1">{upload.category}</p>
                       {upload.location && (
@@ -363,7 +367,7 @@ export function UploadScreen({ userId }: UploadScreenProps) {
                       )}
                     </div>
                     
-                    <div className="flex items-center space-x-1">
+                    <div className="flex items-center space-x-1 shrink-0 ml-2">
                       {getStatusIcon(upload.status)}
                       <Badge variant="outline" className={`text-xs ${getStatusColor(upload.status)}`}>
                         {upload.status}
@@ -371,7 +375,7 @@ export function UploadScreen({ userId }: UploadScreenProps) {
                     </div>
                   </div>
                   
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between mb-2">
                     <span className="text-xs text-gray-500">{upload.uploadDate || new Date(upload.createdAt).toLocaleDateString()}</span>
                     {upload.pointsAwarded && (
                       <Badge style={{ backgroundColor: 'var(--points-yellow)', color: '#000' }} className="text-xs">

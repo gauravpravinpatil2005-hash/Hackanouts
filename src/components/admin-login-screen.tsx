@@ -2,15 +2,16 @@ import { useState } from "react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Card } from "./ui/card";
-import { Leaf, Mail, Lock, Eye, EyeOff, Sprout, Loader2 } from "lucide-react";
+import { Leaf, Mail, Lock, Eye, EyeOff, Sprout, Loader2, ArrowLeft } from "lucide-react";
 import { Checkbox } from "./ui/checkbox";
 import { toast } from "sonner@2.0.3";
 
 interface AdminLoginScreenProps {
   onLogin: () => void;
+  onBackToStart?: () => void;
 }
 
-export function AdminLoginScreen({ onLogin }: AdminLoginScreenProps) {
+export function AdminLoginScreen({ onLogin, onBackToStart }: AdminLoginScreenProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
@@ -65,6 +66,17 @@ export function AdminLoginScreen({ onLogin }: AdminLoginScreenProps) {
 
       {/* Login Card */}
       <Card className="w-full max-w-md p-8 shadow-lg border-0 relative z-10">
+        {/* Back Button */}
+        {onBackToStart && (
+          <button
+            onClick={onBackToStart}
+            className="absolute top-4 left-4 flex items-center gap-2 text-sm text-gray-600 hover:text-gray-800 transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back
+          </button>
+        )}
+
         {/* Logo and Title */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-full mb-4"
